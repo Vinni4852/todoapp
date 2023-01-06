@@ -2,17 +2,36 @@ const express = require("express");
 const app = express();
 const { Todo } = require("./models");
 const bodyParser = require("body-parser");
+const path = require("path");
+
 app.use(bodyParser.json());
+
+app.set("view engine", "ejs");
+app.get("/", async (request, response) => {
+  const allTodos = await Todo.getTodo();
+  if (request.accepts("html")) {
+    response.render("index", {
+      allTodos,
+    });
+  } else {
+    response.json({
+      allTodos,
+    });
+  }
+});
 
 app.get("/", function (request, response) {
   response.send("Hello World");
 });
 
+app.use(express.static(path.join(__dirname, "public")));
+
 app.get("/todos", async function (_request, response) {
   console.log("Processing list of all Todos ...");
+
   try {
-    const todos = await Todo.findAll({ order: [["id", "ASC"]] });
-    return response.json(todos);
+    const todo = await Todo.findAll({ order: [["id", "ASC"]] });
+    return response.json(todo);
   } catch (error) {
     console.log(error);
     return response.status(422).json(error);
@@ -51,9 +70,18 @@ app.put("/todos/:id/markAsCompleted", async function (request, response) {
 });
 
 app.delete("/todos/:id", async function (request, response) {
-  console.log("We have to delete a Todo with ID: ", request.params.id);
-  const affectedRow = await Todo.destroy({ where: { id: request.params.id } });
-  response.send(affectedRow ? true : false);
+  try {
+    console.log("We have to delete a Todo with ID: ", request.params.id);
+    const todo = await Todo.destroy({
+      where: {
+        id: request.params.id,
+      },
+    });
+    response.send(todo ? true : false);
+  } catch (error) {
+    console.log(error);
+    return response.status(422).json(error);
+  }
 });
 
 module.exports = app;
