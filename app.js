@@ -3,20 +3,19 @@ const app = express();
 const { Todo } = require("./models");
 const bodyParser = require("body-parser");
 const path = require("path");
-
 app.use(bodyParser.json());
 
 app.set("view engine", "ejs");
+app.use(express.static(path.join(__dirname, "public")));
+
 app.get("/", async (request, response) => {
-  const allTodos = await Todo.getTodo();
+  const overduetodos = await Todo.overdue();
+  const duetodaytodos = await Todo.dueToday();
+  const duelatertodos = await Todo.dueLater();
   if (request.accepts("html")) {
-    response.render("index", {
-      allTodos,
-    });
+    response.render("index", { overduetodos, duetodaytodos, duelatertodos });
   } else {
-    response.json({
-      allTodos,
-    });
+    response.json({ overduetodos, duetodaytodos, duelatertodos });
   }
 });
 
@@ -24,14 +23,11 @@ app.get("/", function (request, response) {
   response.send("Hello World");
 });
 
-app.use(express.static(path.join(__dirname, "public")));
-
-app.get("/todos", async function (_request, response) {
+app.get("/todos", async function (request, response) {
   console.log("Processing list of all Todos ...");
-
   try {
-    const todo = await Todo.findAll({ order: [["id", "ASC"]] });
-    return response.json(todo);
+    const todos = await Todo.findAll();
+    return response.send(todos);
   } catch (error) {
     console.log(error);
     return response.status(422).json(error);
@@ -70,14 +66,19 @@ app.put("/todos/:id/markAsCompleted", async function (request, response) {
 });
 
 app.delete("/todos/:id", async function (request, response) {
+  console.log("We have to delete a Todo with ID: ", request.params.id);
+  const testdeletedtodo = await Todo.findByPk(request.params.id);
   try {
-    console.log("We have to delete a Todo with ID: ", request.params.id);
-    const todo = await Todo.destroy({
-      where: {
-        id: request.params.id,
-      },
-    });
-    response.send(todo ? true : false);
+    if (testdeletedtodo == null) {
+      return response.send(false);
+    } else {
+      await Todo.destroy({
+        where: {
+          id: request.params.id,
+        },
+      });
+      return response.send(true);
+    }
   } catch (error) {
     console.log(error);
     return response.status(422).json(error);
