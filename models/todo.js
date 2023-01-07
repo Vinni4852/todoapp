@@ -15,9 +15,9 @@ module.exports = (sequelize, DataTypes) => {
       return this.create({ title: title, dueDate: dueDate, completed: false });
     }
 
-    markAsCompleted() {
-      return this.update({ completed: true });
-    }
+    // markAsCompleted() {
+    //   return this.update({ completed: true });
+    // }
     static async overdue() {
       return await Todo.findAll({
         where: {
@@ -44,6 +44,23 @@ module.exports = (sequelize, DataTypes) => {
         },
         order: [["id", "ASC"]],
       });
+    }
+    static async completed() {
+      return this.findAll({
+        where: {
+          completed: true,
+        },
+      });
+    }
+    static async remove(id) {
+      return this.destroy({
+        where: {
+          id,
+        },
+      });
+    }
+    setCompletionStatus(completed) {
+      return this.update({ completed: completed });
     }
   }
   Todo.init(
